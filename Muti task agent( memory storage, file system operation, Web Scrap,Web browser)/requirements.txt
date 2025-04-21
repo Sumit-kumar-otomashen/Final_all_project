@@ -1,0 +1,15 @@
+langchain-core>=0.1.15
+langchain-groq>=0.1.2
+langgraph>=0.0.19
+langchain-community>=0.0.16
+pdfplumber>=0.10.3
+langchain-huggingface>=0.0.2
+faiss-cpu>=1.7.4
+typing-extensions>=4.9.0
+uuid>=1.30
+sentence-transformers>=2.3.1  # For HuggingFaceEmbeddings
+requests>=2.31.0  # Required for web scraping and API calls
+beautifulsoup4>=4.12.2  # Required for WebBaseLoader
+transformers>=4.38.0  # For HuggingFace models
+torch>=2.1.0  # For HuggingFace models
+tavily-python>=0.3.0  # For TavilySearchResults

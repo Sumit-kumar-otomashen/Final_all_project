@@ -1,0 +1,109 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>LangChain File Agent Chatbot</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f5f5f5; }
+            #chat-container { height: 500px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: white; border-radius: 5px; }
+            .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 5px; max-width: 80%; }
+            .user-message { background-color: #e1f5fe; align-self: flex-end; margin-left: auto; }
+            .bot-message { background-color: #f1f1f1; }
+            #user-input { width: calc(100% - 80px); padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+            button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+            .message-container { display: flex; flex-direction: column; }
+            .tool-message { font-size: 0.8em; color: #666; margin-top: 5px; font-style: italic; }
+            .loading { display: none; margin: 10px 0; font-style: italic; color: #666; }
+            .help-text { font-size: 0.9em; color: #666; margin: 10px 0; }
+        </style>
+    </head>
+    <body>
+        <h1>LangChain File Agent Chatbot</h1>
+        <div class="help-text">
+            <p>This agent can organize files, scrape web pages, and more. Start by adding a directory:</p>
+            <code>Add directory C:/path/to/your/folder</code>
+        </div>
+        <div id="chat-container"></div>
+        <div class="loading" id="loading-indicator">Thinking...</div>
+        <div style="display: flex; margin-top: 10px;">
+            <input type="text" id="user-input" placeholder="Type your message here...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+
+        <script>
+            const userId = 'user_' + Math.random().toString(36).substring(2, 10);
+            let threadId = null;
+            
+            function addMessage(message, sender) {
+                const chatContainer = document.getElementById('chat-container');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message-container';
+                const messageContent = document.createElement('div');
+                messageContent.className = 'message ' + (sender === 'user' ? 'user-message' : 'bot-message');
+                if (sender === 'bot') {
+                    const converter = new showdown.Converter();
+                    messageContent.innerHTML = converter.makeHtml(message);
+                } else {
+                    messageContent.textContent = message;
+                }
+                messageDiv.appendChild(messageContent);
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            function addToolMessage(toolUsage) {
+                const chatContainer = document.getElementById('chat-container');
+                const lastMessageContainer = chatContainer.lastChild;
+                const toolDiv = document.createElement('div');
+                toolDiv.className = 'tool-message';
+                toolDiv.textContent = toolUsage;
+                lastMessageContainer.appendChild(toolDiv);
+            }
+            
+            function sendMessage() {
+                const userInput = document.getElementById('user-input');
+                const message = userInput.value.trim();
+                if (message) {
+                    addMessage(message, 'user');
+                    userInput.value = '';
+                    document.getElementById('loading-indicator').style.display = 'block';
+                    fetch('/send_message', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            message: message,
+                            user_id: userId,
+                            thread_id: threadId
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('loading-indicator').style.display = 'none';
+                        addMessage(data.response, 'bot');
+                        threadId = data.thread_id;
+                        if (data.tools_used && data.tools_used.length > 0) {
+                            data.tools_used.forEach(tool => addToolMessage(tool));
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('loading-indicator').style.display = 'none';
+                        console.error('Error:', error);
+                        addMessage('Error: An error occurred.', 'bot');
+                    });
+                }
+            }
+            
+            document.getElementById('user-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+            
+            window.onload = function() {
+                addMessage('👋 Hello! I am your file organization assistant. Add a directory with "Add directory /path/to/your/folder" to start.', 'bot');
+            }
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+    </body>
+    </html>
+    
